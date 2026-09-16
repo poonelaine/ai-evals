@@ -1,0 +1,150 @@
+
+# Generate 20 example rows for evaluating email-summary quality
+import pandas as pd
+
+data = [
+    # 1. Good - Concise & Accurate
+    {
+        "Input Email": "Hi Team, Quick reminder that our quarterly sync has been moved from Thursday 2 PM to Friday at 10 AM EST. Same Zoom link. Please update your calendars.",
+        "Candidate Summary": "Quarterly team sync rescheduled to Friday at 10 AM EST (same Zoom link).",
+        "Label": "Good",
+        "Reason": "Accurate, concise, and captures all key details without fluff."
+    },
+    # 2. Good - Actionable & Clear
+    {
+        "Input Email": "Dear Alex, Thanks for sending over the draft proposal. I've reviewed section 3 and left a few comments on pricing. Could you address those by EOD tomorrow so we can submit to the client?",
+        "Candidate Summary": "Alex requested to address pricing comments on section 3 of draft proposal by EOD tomorrow.",
+        "Label": "Good",
+        "Reason": "Faithfully captures the action item, deadline, and context."
+    },
+    # 3. Bad - Inaccurate / Hallucination
+    {
+        "Input Email": "Hey Sarah, I won't be able to make it to lunch today because I'm stuck in a customer support call. Let's reschedule for next Tuesday.",
+        "Candidate Summary": "Sarah cancelled lunch due to a customer call and proposed meeting next Wednesday.",
+        "Label": "Bad",
+        "Reason": "Inaccurate sender/recipient role and wrong proposed date (Wednesday instead of Tuesday)."
+    },
+    # 4. Bad - Overly Verbose
+    {
+        "Input Email": "Hi All, The office Wi-Fi will be down for scheduled maintenance tonight between 8 PM and 10 PM. Please save your work beforehand.",
+        "Candidate Summary": "This email is an announcement to all staff members letting everyone know that the primary office Wireless Fidelity network infrastructure will be undergoing routine scheduled system maintenance this evening starting precisely at 8:00 PM and concluding at 10:00 PM, and employees are advised to save all work.",
+        "Label": "Bad",
+        "Reason": "Extremely verbose and repetitive; restates simple info with unnecessary wordiness."
+    },
+    # 5. Good - Concise Highlights
+    {
+        "Input Email": "Hi John, Flight original departure was 4:15 PM, but gate agent said it's delayed to 6:30 PM due to thunderstorm in Chicago. Connection in Dallas might be tight.",
+        "Candidate Summary": "Flight delayed from 4:15 PM to 6:30 PM due to Chicago storms; tight Dallas connection expected.",
+        "Label": "Good",
+        "Reason": "Succinctly highlights delay time, cause, and impact."
+    },
+    # 6. Bad - Missing Critical Info
+    {
+        "Input Email": "Hi Security Team, We detected suspicious login attempts on Admin account #402 at 03:14 UTC from IP 192.168.1.50. Account has been locked temporarily.",
+        "Candidate Summary": "There were some logins detected on the system.",
+        "Label": "Bad",
+        "Reason": "Too vague; omits critical severity, account ID, and immediate locking action."
+    },
+    # 7. Good - Task Delegation
+    {
+        "Input Email": "Hi Mark, Can you please send the Q3 financial report to accounting and CC Elena? Also make sure the EBITDA chart is updated.",
+        "Candidate Summary": "Mark needs to update the EBITDA chart and email Q3 financial report to accounting (CC Elena).",
+        "Label": "Good",
+        "Reason": "Accurately lists both requested action items and recipients."
+    },
+    # 8. Bad - Factual Contradiction
+    {
+        "Input Email": "Team, please note that project Alpha is postponed until further notice. Do not log hours under Alpha codes.",
+        "Candidate Summary": "Project Alpha is moving forward as scheduled; team should log hours under Alpha codes.",
+        "Label": "Bad",
+        "Reason": "Direct factual contradiction of the email contents."
+    },
+    # 9. Good - Customer Feedback Summary
+    {
+        "Input Email": "Hi Support, I loved the new UI update! However, the export to PDF button crashes every time I try to save a report on macOS Safari.",
+        "Candidate Summary": "User praised UI update but reported PDF export crashes on macOS Safari.",
+        "Label": "Good",
+        "Reason": "Captures both positive feedback and specific technical bug."
+    },
+    # 10. Bad - Unnecessary Preamble / Padding
+    {
+        "Input Email": "Can someone please bring extra whiteboard markers to Room 302 for the workshop?",
+        "Candidate Summary": "The sender of this email is writing to inquire if an available team member would be kind enough to bring additional whiteboard markers to conference Room 302.",
+        "Label": "Bad",
+        "Reason": "Contains excessive meta-talk and conversational filler."
+    },
+    # 11. Good - Vendor Inquiry
+    {
+        "Input Email": "Hello Sales, We are looking to buy 50 enterprise licenses for your software. Could you provide a price quote and volume discount details?",
+        "Candidate Summary": "Customer requested price quote and volume discount info for 50 enterprise licenses.",
+        "Label": "Good",
+        "Reason": "Clear, concise capture of commercial intent and quantity."
+    },
+    # 12. Bad - Misinterpreting Tone / Intent
+    {
+        "Input Email": "Hi Dan, Just checking in on the design mockups. No rush at all, whenever you get a chance this week is fine!",
+        "Candidate Summary": "URGENT: Dan must submit design mockups immediately to avoid project delay.",
+        "Label": "Bad",
+        "Reason": "Misinterprets relaxed tone/priority as an urgent demand."
+    },
+    # 13. Good - Event Logistics
+    {
+        "Input Email": "Hi All, Annual company picnic is this Saturday at Central Park, Pavilion B from 11 AM - 3 PM. Catering provided, bring family!",
+        "Candidate Summary": "Company picnic this Saturday, 11 AM-3 PM at Central Park (Pavilion B). Catering provided, families welcome.",
+        "Label": "Good",
+        "Reason": "Includes key event details (date, time, location, details) concisely."
+    },
+    # 14. Bad - Unsupported Inference
+    {
+        "Input Email": "Hi Dave, I reviewed your code PR #104. Looks great overall, merged it into main branch.",
+        "Candidate Summary": "PR #104 was merged into main branch, but Dave was fired for code quality issues.",
+        "Label": "Bad",
+        "Reason": "Severe hallucination of external facts not present in text."
+    },
+    # 15. Good - Policy Update
+    {
+        "Input Email": "Notice: Starting Oct 1st, all expense reports over $50 require receipts. Submissions without receipts will be rejected automatically.",
+        "Candidate Summary": "Expense policy update: Receipts required for expenses over $50 starting Oct 1st.",
+        "Label": "Good",
+        "Reason": "Directly states policy threshold, effective date, and rule."
+    },
+    # 16. Bad - Overly Concise (Lacks Context)
+    {
+        "Input Email": "Hi HR, I would like to request parental leave starting November 12th for 6 weeks. My manager has approved.",
+        "Candidate Summary": "Leave request.",
+        "Label": "Bad",
+        "Reason": "Excessively truncated; leaves out dates, leave type, duration, and approval status."
+    },
+    # 17. Good - IT Announcement
+    {
+        "Input Email": "Reminder: Password reset required every 90 days. Please update your passwords via the IT portal before Friday 5 PM to prevent lockout.",
+        "Candidate Summary": "Update portal password by Friday 5 PM to avoid 90-day expiration lockout.",
+        "Label": "Good",
+        "Reason": "Accurately summarizes action item and consequences."
+    },
+    # 18. Bad - Confuses Key Entities
+    {
+        "Input Email": "Hi Brenda, Can you tell Tom that Alice finished the graphic assets for campaign B?",
+        "Candidate Summary": "Brenda finished graphic assets for campaign B and notified Tom.",
+        "Label": "Bad",
+        "Reason": "Misidentifies who completed the task (Alice, not Brenda)."
+    },
+    # 19. Good - Job Application Summary
+    {
+        "Input Email": "Dear Hiring Manager, Attached is my CV for Senior Data Engineer. I have 7 years of Python/SQL experience and built real-time pipelines at TechCorp.",
+        "Candidate Summary": "Applicant applied for Senior Data Engineer role with 7 years Python/SQL experience.",
+        "Label": "Good",
+        "Reason": "Captures candidate role target and key qualification accurately."
+    },
+    # 20. Bad - Includes Meta Commentary
+    {
+        "Input Email": "Hi Team, Please vote on the design options (Option A vs Option B) by voting on the Slack poll before 3 PM.",
+        "Candidate Summary": "This email is 18 words long. The user is asking people to vote on options A and B on Slack before 3 PM today.",
+        "Label": "Bad",
+        "Reason": "Includes irrelevant meta info (word count, framing text)."
+    }
+]
+
+df = pd.DataFrame(data)
+markdown_table = df.to_markdown(index=False)
+print(markdown_table)
