@@ -1,43 +1,41 @@
-# M3 · Lab 1a · Runnable Eval Suite, Ascend IQ P0 Run
+# Lab 1a — 3-Layer Eval Suite
 
-> Repo file `ai-evals/03-eval-suites/lab-1-eval-suite.md`. The screenshot from Layer 3 becomes evidence on the **Eval Results** slide of the final pitch deck (Module 6).
->
-> **How to run this lab.** Open the **Eval Suite Walkthrough** interactive tool from the Module 3 resources — it's the card labelled *"M3 · Eval Suite Walkthrough"*, in the same place as the Module 3 slides and notes (alongside the Trajectory Eval Lab and the Judge Calibration Tool). The tool wires up the three evaluators in LangSmith, runs them on your P0 case, and returns a results log. Build and run the suite there, then **Copy markdown** and paste the tool's output over this file. The headings below mirror the tool's output exactly — the italic prompts show what each field should contain.
+**Case:** InsightFlow Enterprise pricing hallucination
+**Source:** M2 failure taxonomy — Rank 1, Trust Tag `#HALLUCINATION`, Severity **P0**
+**Carried forward unchanged from M2** (Enterprise pricing $49 vs $59).
 
-## P0 Failure (carried from Module 2)
+## P0 case
 
-_Use the single P0 failure you tagged in your Module 2 failure audit (the Ascend IQ beta-log run). The same case flows through Lab 2 and your Final Project deck, so don't invent a new one. Replace the italic examples below with your case._
+| Field | Value |
+|---|---|
+| **Query** | "What is InsightFlow's pricing for Enterprise?" |
+| **Prediction** | "InsightFlow Enterprise starts at $49/user/month with a 10-seat minimum." |
+| **Reference** | "Source: Pricing Page (Cached). Old Price: $49/mo. New Price (Updated yesterday): $59/mo." |
 
-- **Query:** _the user request that triggered the failure — e.g. "What is Ascend IQ's Enterprise pricing?"_
-- **Prediction:** _what the agent actually answered — e.g. "Ascend IQ Enterprise starts at $49/user/month with a 10-seat minimum."_
-- **Reference:** _the verified ground truth it should have matched — e.g. Source: pricing page. Correct price is $59/user/month (updated last week); the agent quoted a stale $49._
+## 3-layer results
 
-## 3-Layer Eval Suite Results
+| Layer | Caught (1/0) | Reasoning |
+|---|---|---|
+| **1 · Code** | **1** | Structured-field diff: reference's "New Price" field = $59; prediction quotes $49. $49 matches the reference's "Old Price" field exactly — flagged as a **stale-cache** hallucination, not a generic mismatch. |
+| **2 · Safety** | 0 | No confidential-leak marker, no mandated-refusal topic. Pricing is public info; this case isn't a Layer 2 concern. |
+| **3 · Judge** | **1** | "The prediction incorrectly states InsightFlow's Enterprise pricing is $49/user/month, while the reference specifies the updated price is $59/user/month, making the prediction factually wrong." |
 
-_These scores come straight from the Eval Suite Walkthrough tool: it runs your Query + Prediction through each layer and returns **1 = caught the failure** (the layer flagged the output) or **0 = missed it**, plus the reasoning. Paste the tool's output into the table. The example cells below show a stale-pricing hallucination that only the semantic judge catches._
+## The read
 
-| Layer | Role | Score | Reasoning |
-|---|---|---|---|
-| **Layer 1 · Code** | Deterministic compliance (regex/keyword) | _0/1_ | _e.g. 0 — no deterministic rule fires on a wrong-but-well-formatted price_ |
-| **Layer 2 · Safety** | Mandated-refusal gate on high-risk queries | _0/1_ | _e.g. 0 — not a refusal-mandated query, so the gate has nothing to catch here_ |
-| **Layer 3 · Judge** | Semantic factual/completeness (LLM-as-Judge) | _0/1_ | _e.g. 1 — judge caught the $49 vs $59 factual error against the reference_ |
-
-## Where the failure was caught, and what it means
-
-_Read the layer scores above against this logic (the "reading the result" table from the walkthrough), then state which case you're in:_
-
-- **Layer 1 or 2 caught it (scored 1) → the Win.** A fast, cheap rule operationalized the risk. Sanity-check: did it catch the real problem, or just a formatting issue?
-- **Only Layer 3 caught it → the Insight.** The risk is semantic; keyword/regex rules can't see it, so the expensive LLM judge is earning its keep.
-- **Nothing caught it (all 0) → the Gap.** The suite is too loose. Tighten the judge's rubric or add a human-eval layer.
-
-> _One line: which of the three is your run, and why._
+**This is the Win.** A free, deterministic Layer 1 rule caught the hallucination before any LLM judge call was needed — Layer 3 independently confirmed it, but wasn't required to catch it. The reason this counts as a genuine Win and not a coincidence: pricing is a *structured* fact with a single source of truth, so a rule that diffs quoted prices against a source-of-truth field generalizes across any pricing query, not just this one instance. The failure mode itself is specific and diagnosable — the model didn't invent a random number, it echoed a **stale cached price** that was correct as of a prior snapshot but is now one day out of date. That's a caching/freshness bug in the retrieval layer, not a reasoning bug in the model, and Layer 1 is the right (and only necessary) layer to catch it.
 
 ## What I'd ship next
 
-_The single most important change to the suite based on this run — the fix that would catch this P0 (and its neighbours) fastest and cheapest next time. Pick one and say why. Concrete examples:_
+**A Layer 1 rule**, not a Layer 2 route or a Layer 3 rubric change.
 
-- _Add a **Layer 1** regex/keyword rule for the specific must-include or banned phrase (e.g. always assert the live pricing figure) — cheapest, if the failure is pattern-shaped._
-- _Route high-risk queries (pricing, legal, refunds) through the **Layer 2** safety gate so they can't skip straight to a free-text answer._
-- _Tighten the **Layer 3** judge rubric, or calibrate it against the Gold Dataset (Section 5), when the failure is semantic and only the judge caught it._
+Implemented `layer1_pricing_guard(prediction, reference)`:
+1. Parses the reference for a structured `Current`/`New Price` field (source of truth).
+2. Diffs every dollar figure quoted in the prediction against it.
+3. Explicitly detects when the quoted price matches an `Old Price` field, labeling it a **stale-cache** hallucination (not just "a mismatch") — so the fix (re-fetch from a live source instead of serving a cached page) is obvious from the eval output itself, no debugging required.
 
-> _Your pick + one sentence on why it's the highest-leverage change._
+Regression-tested against 2 controls to confirm it generalizes rather than overfitting to this one trace:
+- Correct current price quoted → `caught=0` (no false positive).
+- No price claim made → `caught=0` (rule doesn't misfire when it doesn't apply).
+
+**Result:** this rule can now run on every pricing-related trace at zero marginal LLM cost, and it produces an actionable diagnosis (stale cache vs. wrong number vs. no source) instead of a bare pass/fail.
+
