@@ -1,29 +1,25 @@
-# Module 4 · Eval Gate Map · Ascend IQ Copilot
+# Lab 1 — Eval Gate Map (Ascend IQ)
 
-> Repo file `ai-evals/04-eval-gates/lab-1-gate-map.md`. Becomes the **Eval Gates** slide of the final pitch deck (Module 6).
-> Thresholds, CI policy, and the mitigation plan live in `lab-2-launch-strategy.md`; the CI replay demo lives in `lab-ci-gate-policy.md`.
->
-> Fill this with the **Eval Gate Mapping Tool**, then **Copy markdown** and paste it over this file. The headings below mirror the tool's output exactly. End with **≥1 Hard, ≥1 Soft, ≥1 Advisory**.
-
-## Context
-
-_The 5 verified failures Eng flagged in the Ascend IQ data log. Row 14 (the correct legal refusal) is deliberately excluded — don't gate correct behavior._
+**Builds on:** M2 Failure Taxonomy (`02-failure-discovery/failure-taxonomy.md`) + M3 Eval Spec (`03-eval-specs/lab-2-eval-spec.md`)
 
 ## Gate Map
 
-| Row | Failure Mode | Severity | Placement | Rationale |
-|---|---|---|---|---|
-| 01 | _…_ | _Advisory / Soft / Hard_ | _PR / Staging / Release_ | _…_ |
-| 17 | _…_ | _Advisory / Soft / Hard_ | _PR / Staging / Release_ | _…_ |
-| 05 | _…_ | _Advisory / Soft / Hard_ | _PR / Staging / Release_ | _…_ |
-| 08 | _…_ | _Advisory / Soft / Hard_ | _PR / Staging / Release_ | _…_ |
-| 03 | _…_ | _Advisory / Soft / Hard_ | _PR / Staging / Release_ | _…_ |
+| # | Failure | Trust Tag | Frequency | M2 Severity (P-rank) | Gate Severity | Pipeline Stage | Rationale |
+|---|---|---|---|---|---|---|---|
+| 1 | Enterprise pricing hallucination ($49 vs $59) | #HALLUCINATION | HIGH (3/20) | P0 | **Hard** | **PR** | Deterministic, zero-cost detector (`layer1_pricing_guard`) already exists with 100% catch-rate threshold — no reason to let a known-bad price merge at all. Block wrong prices at the earliest stage. |
+| 2 | Entity & Competitive Data Inaccuracies (competitor rate limits, office locations, exec bios) | #HALLUCINATION | HIGH (5/20) | P1 | **Soft** | **Staging** | Detection is judge/retrieval-based, not a clean string diff — noisier and more prone to false positives than pricing. Frequent and reputationally damaging enough to require a real checkpoint before customer exposure, but blocking every PR on it risks over-gating. |
+| 3 | Brand Voice & Tone Compliance Violations (unsanctioned slang in B2B email gen) | #UX_TRUST | LOW (1/20) | P2 | **Advisory** | **PR** | M2 taxonomy explicitly notes "no legal/compliance risk." Low frequency, low stakes — flag early and cheaply as a non-blocking warning; don't block merges over a style issue. |
+| 4 | T-03-A — Trajectory ordering violation (Lab 1b, Strict matching, HOLD verdict) | — | — | HOLD (unresolved) | **Soft** | **Staging** | HOLD verdict signals genuine evaluator uncertainty — not clean enough for an automatic Hard/PR block, but it's a workflow/trajectory defect (not a one-off wrong answer) that shouldn't reach real users unchecked. |
 
-## Sample Interactions (for reference)
+### Severity distribution check
+- Hard: 1 (pricing)
+- Soft: 2 (entity accuracy, trajectory ordering)
+- Advisory: 1 (brand voice/tone)
 
-**Row 01 · _failure short name_**
-- Input: _…_
-- Output: _…_
-- Eng reasoning: _…_
+✅ Meets the ≥1 Hard, ≥1 Soft, ≥1 Advisory requirement.
 
-_(…one block per row…)_
+### Sample-interaction references
+- **Failure 1:** M3 Lab 2 Eval Spec — Target Risk: *"InsightFlow Enterprise pricing hallucination (P0, carried from M2 taxonomy → Lab 1a → Lab 1b)"*; Evaluator: `layer1_pricing_guard` (Layer 1 deterministic rule, shipped in Lab 1a).
+- **Failure 2:** M2 Failure Taxonomy — Rank 2, *"Inaccurate competitor rate limits, office locations, or executive bios degrades sales rep reliance on Ascend IQ and erodes brand authority."*
+- **Failure 3:** M2 Failure Taxonomy — Rank 3, *"Unsanctioned slang ('killer', 'game changer') in B2B email generation damages enterprise brand positioning, though it carries no legal/compliance risk."*
+- **Failure 4:** M3 Lab 1b Trajectory Eval — Case T-03-A, ordering violation, graded Strict, verdict: HOLD.
