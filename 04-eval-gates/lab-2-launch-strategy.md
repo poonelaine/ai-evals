@@ -35,8 +35,8 @@
 
 **Applies to:** the Soft gates on entity & competitive data accuracy (Failure 2) and trajectory ordering (Failure 4).
 
-**Rationale (owner's words):** "If we give a poor answer to the wrong client, we can do lasting damage to the relationship; should not deploy."
+**Rationale:** If we give a poor answer to the wrong client, we can do lasting damage to the relationship; should not deploy features without confidence.
 
 **How it contains the risk while we ship:** The affected capability sits behind a flag, so it is not exposed to customers while a Soft gate is below threshold. The flag can be switched off instantly without a redeploy, which limits the damage to a client relationship from a wrong answer.
 
-**Not yet specified (owner to define):** the flag's default state at launch, who can flip it, and the metric trigger for turning it off.
+**Not yet specified (to be defined):** the flag's default state at launch, who can flip it, and the metric trigger for turning it off.
