@@ -1,47 +1,31 @@
-# Ship/Hold Memo · Ascend IQ
+# Ship/Hold Memo: Ascend IQ
 
-> Repo file `ai-evals/06-culture/lab-1-ship-hold-memo.md`. A Pyramid-Principle executive memo: the recommendation comes **first**.
->
-> Fill this with the **Ship/Hold Memo Builder**, then **Copy markdown** and paste it over this file. The headings below mirror the tool's output exactly.
+**To:** [TBD: addressee to be confirmed]
+**From:** Elaine Poon, Sr Product Manager
+**Decision:** SHIP with conditions
 
-> **Decision:** 🚀 SHIP _(or 🛑 HOLD)_
-
-**To:** _[CPO] · cc Eng Lead · Trust & Safety_
-**From:** _[Your Name] · AI Evals Cohort · [Date]_
+---
 
 ## The Answer
 
-_First sentence = the recommendation and the business reason. Do not bury it._
+**Recommendation: SHIP Ascend IQ with conditions, because quoting the wrong Enterprise price ($49 vs $59) to a prospect would do lasting damage to buyer trust, and the conditions below keep that failure from reaching customers.**
 
-## The Arguments
+### Conditions
 
-### 1. _Argument pillar title_
-
-_…_
-
-### 2. _Argument pillar title_
-
-_…_
-
-### 3. _Argument pillar title_
-
-_…_
-
-## Evidence · Trust Metrics
-
-```
-- Metric: result (Gate: bar) PASS/FAIL · Source
-- … cite exact numbers from M2–M5 (hallucination rate vs gate, factual grounding %, bias coverage %, p95 latency)
-```
+| # | Condition | Gap it closes | Source |
+|---|---|---|---|
+| A | PR #218 stays unmerged until Faithfulness is ≥95% (currently 87%) and Tool Selection is ≥95% (currently 88%) | Two blocking CI failures | M4 lab-ci-gate-policy.md |
+| B | Hard pricing gate shows 100% on the full pricing-tagged golden set, not just one case and two controls | No full-set pricing result | M3 lab-1-eval-suite.md · M4 lab-2-launch-strategy.md |
+| C | Entity and trajectory features stay behind the feature flag until their Soft gates pass (entity ≥90%, trajectory ordering ≥95%) | Soft gates have no results | M4 lab-2-launch-strategy.md |
+| D | Drift monitoring is live by 31 Mar 2027, owned by the Marketing Manager | Critical coverage gap (Drift Monitoring ❌) | M5 lab-1-coverage-matrix.md · M5 lab-2-budget-crisis.md |
 
 ## Business Risk
++ SHIP (with conditions): ~$2.5M renewal revenue protected; reputational risk capped at a 30-day audit window, with documented mitigation
++ HOLD: 50 enterprise contracts at upward of $50,000 a year each (~$2.5M ARR) at high churn risk in Q3; competitive window closes in 8 weeks
 
-_Quantified SHIP-path vs HOLD-path risk (revenue, churn, competitive window)._
-
-## Next Step · Decision Needed
-
-_A specific decision request with a deadline — e.g. "Approve the Hold rollback by Friday to keep the Q3 launch window."_
+## Next Step
++ Decision needed: Approve SHIP-with-conditions (pricing behind the Hard gate; entity and trajectory behind the feature flag; Conditions A-D) by 15 Oct 2026, ahead of the end of Q3 on 30 Oct 2026.
 
 ## Reflection
++ Defining UX Trust was the hardest part of "good enough." Because the Agent answers correctly but misses crucial nuances (summarizes all reviews instead of isolating negatives as requested). Potential churn, lower quality of service.
 
-_What defining "good enough" forced you to confront._
