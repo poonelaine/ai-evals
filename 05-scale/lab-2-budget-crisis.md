@@ -1,26 +1,27 @@
-# Lab 2, Ascend IQ Budget Crisis
+# Lab 2: Budget Crisis (Ascend IQ)
 
-> Repo file `ai-evals/05-scale/lab-2-budget-crisis.md`. Allocate Level 1/2/3 coverage across the 5 failure modes under the **$200K/quarter cap** with **max 3 at Level 3**.
->
-> Fill this with the **Budget Crisis Tool**, then **Copy markdown** and paste it over this file. The headings below mirror the tool's output exactly.
-
-**Quarterly budget cap:** $200,000
-**Total Level 3 spend:** _$… (… of max 3 L3 slots used)_
-
-## Portfolio decision grid
+## Portfolio decision grid ($200K/quarter cap, max 3 L3)
 
 | Failure | Trust metric | Risk | Level | Cost |
 |---|---|---|---|---|
-| Data Fabrication | Hallucination Rate | P0 | _L1 / L2 / L3_ | _$…_ |
-| Context Specificity | UX Trust | P1 | _L1 / L2 / L3_ | _$…_ |
-| Source Attribution Failure | Robustness | P1 | _L1 / L2 / L3_ | _$…_ |
-| Data Bias | Fairness | P2 | _L1 / L2 / L3_ | _$…_ |
-| Cost Overruns | Latency | P3 | _L1 / L2 / L3_ | _$…_ |
+| Data Fabrication | Hallucination Rate | P0 | L3 | $85K |
+| Context Specificity | UX Trust | P1 | L2 | $7K |
+| Source Attribution Failure | Robustness | P1 | L3 | $65K |
+| Data Bias | Fairness | P2 | L1 | $2.75K |
+| Cost Overruns | Latency | P3 | L3 | $25K |
 
-_Reference L3 costs: Hallucination $85K · Context $70K · Attribution $65K · Bias $55K · Latency $25K. L2 ≈ 10% of L3, L1 ≈ 5% of L3._
+**Total spend:** $184.75K of $200K ($15.25K headroom)
+**L3 slots used:** 3 of 3
 
-## Fallback methods (non-Level 3 items)
+## Fallback methods
 
-### L_n_ · _Failure name_ (_metric_ · _risk_)
-- **Method:** _the cheaper fallback you'll run instead of L3_
-- **Why this fallback is defensible:** _the story you could defend in a customer incident review — especially if you downgraded a P0/P1._
+| Non-L3 item | Level | Fallback method |
+|---|---|---|
+| Context Specificity (P1) | L2 | (a) Weekly sample of ~20 traces, with an LLM judge checking each answer against its retrieved source. (b) Code-based rule that flags answers citing source data past a set age. |
+| Data Bias (P2) | L1 | (b) Review of flagged outputs and sales-rep feedback. (c) Re-decision at the end of Q2, consistent with the Lab 1 accepted gap. |
+
+### Incident-review story: Context Specificity at L2 (DRAFT, confirm or edit)
+
+> We held Context Specificity at L2 instead of L3 because the budget cap allowed only three L3 slots, and we spent them on the failures that cause the most severe customer harm: Data Fabrication (P0, Enterprise pricing, SQL export and SOC2 claims), Source Attribution Failure (P1), and Cost Overruns. Context still had active controls: a weekly LLM-judge sample against retrieved sources and a code-based staleness rule, plus the Drift Monitoring mitigation (pricing/claims re-check on source change and scheduled replay against the launch baseline) due 31 Mar 2027.
+>
+> We would raise Context to L3 if a context-related failure reached a customer or prospect, or if the weekly sample or staleness rule showed a rising failure trend, and we would fund it by trading down one of the other L3 slots.
