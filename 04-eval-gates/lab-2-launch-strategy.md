@@ -39,4 +39,4 @@
 
 **How it contains the risk while we ship:** The affected capability sits behind a flag, so it is not exposed to customers while a Soft gate is below threshold. The flag can be switched off instantly without a redeploy, which limits the damage to a client relationship from a wrong answer.
 
-**Not yet specified (to be defined):** the flag's default state at launch, who can flip it, and the metric trigger for turning it off.
+**Next Steps (to be defined):** the flag's default state at launch, who can flip it, and the metric trigger for turning it off.
